@@ -1,0 +1,22 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=portfolio_db
+      - MYSQL_USER=rootPortfolioDb
+      - MYSQL_PASSWORD=portfolio_passPDB
+      - MYSQL_ROOT_PASSWORD=root_passPDB
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+
+  mongo:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongoPortfolioDb
+      - MONGO_INITDB_ROOT_PASSWORD=mongo_passPDB
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db

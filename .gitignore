@@ -1,0 +1,22 @@
+# Dependencias Node
+node_modules/
+
+# Dependencias PHP (Laravel)
+backend/**/vendor/
+
+# Archivos de entorno
+*.env
+.env.*
+
+# Laravel cosas que se regeneran
+backend/**/storage/logs/
+backend/**/storage/framework/cache/
+backend/**/storage/framework/sessions/
+backend/**/storage/framework/views/
+
+# Datos de Docker (volúmenes locales)
+infra/mysql_data/
+infra/mongo_data/
+
+# Archivos del sistema
+.DS_Store
