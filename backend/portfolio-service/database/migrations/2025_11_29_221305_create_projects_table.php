@@ -15,17 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('client_name')->nullable();
-            $table->string('project_type');
             $table->string('slug')->unique();
             $table->string('main_image_path')->nullable();
             $table->text('short_description');
             $table->string('repository_url')->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_featured')->default(false);
+            $table->foreignId('work_mode_id')->constrained('work_modes');
+            $table->foreignId('experience_id')->constrained('experiences');
             $table->timestamps();
         });
     }
-    
+
     /**
      * Reverse the migrations.
      */
