@@ -3,19 +3,24 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-class AuthController extends Controller
+class AuthController extends Controller implements HasMiddleware
 {
     /**
      * Create a new AuthController instance.
      *
      * @return void
      */
-    public function __construct()
+     public static function middleware(): array
     {
-        $this->middleware('auth:api', ['except' => ['login','register']]);
+        return [
+            // Protege todo con auth:api EXCEPTO login y register
+            new Middleware('auth:api', except: ['login', 'register']),
+        ];
     }
+
 
     /**
      * Get a JWT via given credentials.
@@ -32,6 +37,12 @@ class AuthController extends Controller
 
         return $this->respondWithToken($token);
     }
+
+    // public function login()
+    // {
+    //     return response()->json(['msg' => 'login endpoint OK']);
+    // }
+
 
     /**
      * Get the authenticated User.
