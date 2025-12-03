@@ -2,81 +2,82 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\BaseController;
-use Illuminate\Http\Request;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
 
-class AuthController extends BaseController
+class AuthController extends Controller
 {
     /**
-     * Register api
+     * Create a new AuthController instance.
      *
-     * @return \Illuminate\Http\Response
+     * @return void
      */
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['login','register']]);
+    }
 
-    //FUNCION PAR LOGIN EN PANEL ADMIN
-    public function login(Request $request): JsonResponse{
+    /**
+     * Get a JWT via given credentials.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function login()
+    {
+        $credentials = request(['email', 'password']);
 
-        $input = $request->all();
-        //Revisamos que el email y password vengan con el formato correcto
-        $validator = Validator::make($input, [
-            'email' => 'required|email',
-            'password' => 'required|string',
+        if (! $token = auth()->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        return $this->respondWithToken($token);
+    }
+
+    /**
+     * Get the authenticated User.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function me()
+    {
+        return response()->json(auth()->user());
+    }
+
+    /**
+     * Log the user out (Invalidate the token).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function logout()
+    {
+        auth()->logout();
+
+        return response()->json(['message' => 'Successfully logged out']);
+    }
+
+    /**
+     * Refresh a token.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refresh()
+    {
+        return $this->respondWithToken(auth()->refresh());
+    }
+
+    /**
+     * Get the token array structure.
+     *
+     * @param  string $token
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function respondWithToken($token)
+    {
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => auth()->factory()->getTTL() * 60
         ]);
-
-        //Si falla la validacion con Validator::make
-        if($validator->fails()){
-            return $this->sendError('Error en la validacion', $validator->errors(), 422);
-        }
-
-
-        if(Auth::attempt(['email' => $request->email, 'password' => $request->password])){
-            //Recuperamos el User()
-            $user = Auth::user();
-            //Generamos Token y lo guardamos en personal_access_tokens
-            $success['token'] = $user->createToken('api_token')->plainTextToken;
-            $success['name'] = $user->name;
-            return $this->sendResponse($success, 'Usuario Logueado Correctamente');
-        }else{
-            return $this->sendError('Algo Fallo Revisa tus credenciales', ['error'=>'Unauthorised'], 401);
-        }
     }
-
-    //FUNCION ME Optener datos usuario
-    public function me(Request $request): JsonResponse{
-
-        $user = $request->user();
-
-        //Validacion Login
-        if (!$user) {
-            return $this->sendError('No autenticado', [], 401);
-        }
-
-        $data = [
-            'id'    => $user->id,
-            'name'  => $user->name,
-            'email' => $user->email,
-        ];
-
-        return $this->sendResponse($data, 'Usuario autenticado');
-    }
-
-    //Funcion de Logout
-    public function logout(Request $request): JsonResponse{
-
-        $user = $request->user();
-
-        if (!$user || !$user->currentAccessToken()) {
-            return $this->sendError('No hay sesión activa', [], 401);
-        }
-
-        $request->user()->currentAccessToken()->delete();
-
-        return $this->sendResponse(null, 'Sesion cerrada correctamente');
-
-    }
-
 }
