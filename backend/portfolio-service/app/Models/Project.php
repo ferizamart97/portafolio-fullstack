@@ -21,6 +21,14 @@ class Project extends Model
         'experience_id',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'is_active'    => 'boolean',
+            'is_featured'  => 'boolean',
+        ];
+    }
+
     //Relaciones pivot.
     //project_solution_type
     public function solutionTypes()
