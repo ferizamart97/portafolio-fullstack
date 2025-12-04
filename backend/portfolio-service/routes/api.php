@@ -1,16 +1,14 @@
 <?php
 
+use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Public\ProjectPublicController;
 
-Route::prefix('public')->group(function () {
+Route::middleware(['auth:api'])->group(function () {
+    // Solo entra si manda un JWT válido en Authorization: Bearer <token>
 
-    Route::middleware('auth:sanctum')->group(function () {
-        // rutas protegidas
-        Route::get('/projects', [ProjectPublicController::class, 'index']);
-    });
-
-
-
+    Route::post('/projects', [ProjectController::class, 'store']);
+    Route::put('/projects/{id}', [ProjectController::class, 'update']);
+    Route::delete('/projects/{id}', [ProjectController::class, 'destroy']);
 });
 
+Route::get('/projects', [ProjectController::class, 'index']);
