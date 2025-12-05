@@ -12,6 +12,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy']);
 
     Route::get('/projects', [ProjectController::class, 'index']);
-    Route::get('/projects', [ProjectController::class, 'show']);
+    Route::get   ('/projects/{id}',   [ProjectController::class, 'show']);
 
 });

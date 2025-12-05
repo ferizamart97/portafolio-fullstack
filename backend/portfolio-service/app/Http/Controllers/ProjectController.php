@@ -19,15 +19,19 @@ class ProjectController extends Controller
     // GET /api/projects
     public function index()
     {
-        $projects = Project::all();
+        $projects = Project::with([
+            'workModes',
+            'experiences',
+        ])->orderByDesc('id')->get();
 
         return response()->json($projects);
     }
 
-    // GET /api/projects/{project}
-    public function show(Project $project)
+
+    // GET /api/projects/{id}
+    public function show($id)
     {
-        $project->load(['workMode', 'experience']);
+        $project = Project::findOrFail($id);
 
         return response()->json($project);
     }
