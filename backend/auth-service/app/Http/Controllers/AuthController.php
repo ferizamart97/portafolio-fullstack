@@ -31,11 +31,13 @@ class AuthController extends Controller implements HasMiddleware
     {
         $credentials = request(['email', 'password']);
 
+        $ttlMinutes = 60 * 24;
+
         if (! $token = auth()->attempt($credentials)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        return $this->respondWithToken($token);
+        return $this->respondWithToken($token, $ttlMinutes);
     }
 
     // public function login()
@@ -83,12 +85,17 @@ class AuthController extends Controller implements HasMiddleware
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    protected function respondWithToken($token)
+
+
+    protected function respondWithToken($token, int $ttlMinutes = null)
     {
+
+        $ttlMinutes = $ttlMinutes ?? (int) auth()->factory()->getTTL();
+
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 100
+            'expires_in' => $ttlMinutes * 60,
         ]);
     }
 }

@@ -16,7 +16,13 @@ class SolutionType extends Model
 
     public function projects()
     {
-        return $this->belongsToMany(Project::class, 'project_solution_type');
+        return $this->belongsToMany(
+            Project::class,
+            'project_solution_types',
+            'solution_type_id',
+            'project_id'
+        )->withTimestamps();
     }
+
 
 }

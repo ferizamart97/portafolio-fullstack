@@ -33,7 +33,12 @@ class Project extends Model
     //project_solution_type
     public function solutionTypes()
     {
-        return $this->belongsToMany(SolutionType::class, 'project_solution_type');
+        return $this->belongsToMany(
+            SolutionType::class,
+            'project_solution_types',   // nombre real de la tabla pivote
+            'project_id',               // FK en pivote hacia projects
+            'solution_type_id'          // FK en pivote hacia solution_types
+        )->withTimestamps();
     }
 
     //project_industry

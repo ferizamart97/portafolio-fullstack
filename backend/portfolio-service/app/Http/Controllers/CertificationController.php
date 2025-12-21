@@ -80,16 +80,18 @@ class CertificationController extends Controller
         }
 
         // Método para insertar datos después de validar
-        $certification = Certification::create([
-            'name'=> $request->name,
-            'short_description'=> $request->short_description,
-            'name_institution'=> $request->name_institution,
-            'url_institution'=> $request->url_institution,
-            'slug'=> $request->slug,
-            'main_image_path'=> $request->main_image_path,
-            'date_certification'=> $request->date_certification,
-            'date_end_certification'=> $request->date_end_certification,
-        ]);
+        // $certification = Certification::create([
+        //     'name'=> $request->name,
+        //     'short_description'=> $request->short_description,
+        //     'name_institution'=> $request->name_institution,
+        //     'url_institution'=> $request->url_institution,
+        //     'slug'=> $request->slug,
+        //     'main_image_path'=> $request->main_image_path,
+        //     'date_certification'=> $request->date_certification,
+        //     'date_end_certification'=> $request->date_end_certification,
+        // ]);
+
+        $education = Certification::create($validator->validated());
 
         // Método por si falla la inserción de datos
         if (!$certification) {

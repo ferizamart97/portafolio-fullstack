@@ -14,7 +14,11 @@ class ProjectController extends Controller
     // Obtener Todos
     public function index()
     {
-        $project = Project::orderByDesc('id')->get();
+        $project = Project::with([
+            'solutionTypes',
+            'workModes',
+            'experiences',
+        ])->orderByDesc('id')->get();
 
         $data = [
             'projects' => $project,
@@ -28,7 +32,11 @@ class ProjectController extends Controller
     // Obtener dato por id
     public function show($id)
     {
-        $project = Project::findOrFail($id);
+        $project = Project::with([
+            'solutionTypes',
+            'workModes',
+            'experiences',
+        ])->find($id);
 
         //Metodo cuando no se encuentran datos
         if(!$project){
@@ -66,6 +74,9 @@ class ProjectController extends Controller
             'is_featured' => 'required',
             'work_mode_id' => 'required',
             'experience_id' => 'required',
+            'solution_type_ids'   => 'required|array',
+            'solution_type_ids.*' => 'integer|exists:solution_types,id',
+
         ]);
         // Metodo por si falla la validacion
         if($validator->fails()){
@@ -77,6 +88,9 @@ class ProjectController extends Controller
             // Retornamos la data del error
             return response()->json($data, 400);
         }
+
+        $solutionTypeIds = $request->solution_type_ids;
+
         //Metodo para insertar datos despues de validar
         $project = Project::create([
             'name'  => $request->name,
@@ -90,6 +104,7 @@ class ProjectController extends Controller
             'work_mode_id'  => $request->work_mode_id,
             'experience_id'  => $request->experience_id,
         ]);
+
         //Metodo por si falla la insercion de datos
         if(!$project){
             $data = [
@@ -99,10 +114,14 @@ class ProjectController extends Controller
             // Retornamos la data del error
             return response()->json($data, 500);
         }
+
+        // guarda en tabla pivote
+        $project->solutionTypes()->sync($solutionTypeIds);
+
         // Metodo cuando se inserta correctamente
          $data = [
               'message' => 'Proyecto creado Correctamente',
-              'project' => $project,
+              'project' => $project->load('solutionTypes'),
               'status' => 201,
          ];
              // Retornamos datos del modelo creado
@@ -123,7 +142,11 @@ class ProjectController extends Controller
             return response()->json($data, 404);
         }
 
-        $project->delete();
+        // Limpia relaciones many-to-many
+            $project->solutionTypes()->detach();
+
+            // Borra el proyecto
+            $project->delete();
 
         $data = [
             'message' => 'Proyecto Eliminado',
@@ -160,6 +183,10 @@ class ProjectController extends Controller
             'is_featured' => 'required',
             'work_mode_id' => 'required',
             'experience_id' => 'required',
+
+            // ✅ pivote
+            'solution_type_ids'   => 'required|array',
+            'solution_type_ids.*' => 'integer|exists:solution_types,id',
         ]);
         // Metodo por si falla la validacion
         if($validator->fails()){
@@ -172,23 +199,20 @@ class ProjectController extends Controller
             return response()->json($data, 400);
         }
 
-        //Si la validacion es correcta
-        $project->name = $request->name;
-        $project->client_name = $request->client_name;
-        $project->slug = $request->slug;
-        $project->main_image_path = $request->main_image_path;
-        $project->short_description = $request->short_description;
-        $project->repository_url = $request->repository_url;
-        $project->is_active = $request->is_active;
-        $project->is_featured = $request->is_featured;
-        $project->work_mode_id = $request->work_mode_id;
-        $project->experience_id = $request->experience_id;
+        $validated = $validator->validated();
 
-        $project->save();
+        $solutionTypeIds = $validated['solution_type_ids'];
+        unset($validated['solution_type_ids']);
+
+        $project->update($validated);
+
+        // ✅ reemplaza los solution types del proyecto por los nuevos
+        $project->solutionTypes()->sync($solutionTypeIds);
+
 
         $data = [
             'message' => 'Proyecto actualizado',
-            'proyecto' => $project,
+            'proyecto' => $project->fresh()->load('solutionTypes'),
             'status' => 200,
         ];
 
@@ -213,16 +237,20 @@ class ProjectController extends Controller
         // Validar Datos
         $validator = Validator::make($request->all(), [
             // Arreglo de datos a iterar
-            'name' => '',
-            'client_name' => '',
-            'slug' => ['sometimes', Rule::unique('projects', 'slug')->ignore($project->id)],
-            'main_image_path' => '',
-            'short_description' => '',
-            'repository_url' => '',
-            'is_active' => '',
-            'is_featured' => '',
-            'work_mode_id' => '',
-            'experience_id' => '',
+            'name' => ['sometimes','required','string','max:255'],
+            'client_name' => ['sometimes','required','string','max:255'],
+            'slug' => ['sometimes','required','string','max:255', Rule::unique('projects', 'slug')->ignore($project->id)],
+            'main_image_path' => ['sometimes','required','string','max:255'],
+            'short_description' => ['sometimes','required','string'],
+            'repository_url' => ['sometimes','required','string','max:255'],
+            'is_active' => ['sometimes','required','boolean'],
+            'is_featured' => ['sometimes','required','boolean'],
+            'work_mode_id' => ['sometimes','required','integer','exists:work_modes,id'],
+            'experience_id' => ['sometimes','required','integer','exists:experiences,id'],
+
+            // ✅ pivote (si lo mandas, lo actualiza)
+            'solution_type_ids'   => ['sometimes','required','array'],
+            'solution_type_ids.*' => ['integer','exists:solution_types,id'],
         ]);
         // Metodo por si falla la validacion
         if($validator->fails()){
@@ -236,52 +264,29 @@ class ProjectController extends Controller
         }
 
         //Condicional parta agregar solo lo obtenido
-        if($request -> has('name')){
-            $project->name = $request->name;
+        $validated = $validator->validated();
+
+        if (empty($validated)) {
+            return response()->json([
+                'message' => 'No enviaste campos para actualizar',
+                'status'  => 400,
+            ], 400);
         }
 
-        if($request -> has('client_name')){
-            $project->client_name = $request->client_name;
+        // ✅ si viene la relación, actualízala
+        if (array_key_exists('solution_type_ids', $validated)) {
+            $project->solutionTypes()->sync($validated['solution_type_ids']);
+            unset($validated['solution_type_ids']);
         }
 
-        if($request -> has('slug')){
-            $project->slug = $request->slug;
+        // ✅ si quedaron campos normales, actualízalos
+        if (!empty($validated)) {
+            $project->update($validated);
         }
-
-        if($request -> has('main_image_path')){
-            $project->main_image_path = $request->main_image_path;
-        }
-
-        if($request -> has('short_description')){
-            $project->short_description = $request->short_description;
-        }
-
-        if($request -> has('repository_url')){
-            $project->repository_url = $request->repository_url;
-        }
-
-        if($request -> has('is_active')){
-            $project->is_active = $request->is_active;
-        }
-
-        if($request -> has('is_featured')){
-            $project->is_featured = $request->is_featured;
-        }
-
-        if($request -> has('work_mode_id')){
-            $project->work_mode_id = $request->work_mode_id;
-        }
-
-        if($request -> has('experience_id')){
-            $project->experience_id = $request->experience_id;
-        }
-
-        //Guardamos y actualizamos los datos
-        $project->save();
 
         $data = [
             'message' => 'Proyecto actualizado',
-            'proyecto' => $project,
+            'proyecto' => $project->fresh()->load('solutionTypes'),
             'status' => 200,
         ];
 
